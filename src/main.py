@@ -1,6 +1,7 @@
 from system_info import get_system_info  
 from cpu import get_cpu_usage
 from memory import get_memory_stats, kb_to_gib, read_meminfo
+from disk import get_disk_usage, bytes_to_gib
 
 def main():
     info = get_system_info()
@@ -56,6 +57,28 @@ def main():
         f"Used        : "
         f"{kb_to_gib(memory['swap_used']):.2f} GiB"
     )
+
+    disk = get_disk_usage("/")
+
+    print()
+    print("=== DISK ===")
+
+    print(f"Mount point : {disk['path']}")
+    print(f"Total       : {bytes_to_gib(disk['total']):.2f} GiB")
+    print(f"Used        : {bytes_to_gib(disk['used']):.2f} GiB")
+    print(f"Available   : {bytes_to_gib(disk['available']):.2f} GiB")
+    print(f"Usage       : {disk['usage_percent']:.2f} %")
+
+    windows_disk = get_disk_usage("/mnt/c")
+
+    print()
+    print("=== WINDOWS C: via WSL ===")
+
+    print(f"Mount point : {windows_disk['path']}")
+    print(f"Total       : {bytes_to_gib(windows_disk['total']):.2f} GiB")
+    print(f"Used        : {bytes_to_gib(windows_disk['used']):.2f} GiB")
+    print(f"Available   : {bytes_to_gib(windows_disk['available']):.2f} GiB")
+    print(f"Usage       : {windows_disk['usage_percent']:.2f} %")
 
 if __name__ == "__main__":
     main()
