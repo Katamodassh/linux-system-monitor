@@ -2,6 +2,7 @@ from system_info import get_system_info
 from cpu import get_cpu_usage
 from memory import get_memory_stats, kb_to_gib, read_meminfo
 from disk import get_disk_usage, bytes_to_gib
+from processes import get_processes
 
 def main():
     info = get_system_info()
@@ -80,5 +81,32 @@ def main():
     print(f"Available   : {bytes_to_gib(windows_disk['available']):.2f} GiB")
     print(f"Usage       : {windows_disk['usage_percent']:.2f} %")
 
+    processes = get_processes()
+
+    top_processes = sorted(
+        processes,
+        key=lambda process: process["memory_kb"],
+        reverse=True,
+    )[:10]
+
+    print()
+    print("=== TOP PROCESSES BY MEMORY ===")
+    print(top_processes)
+    print(
+        f"{'PID':<8}"
+        f"{'NAME':<25}"
+        f"{'STATE':<20}"
+        f"{'MEMORY':>12}"
+    )
+
+    for process in top_processes:
+        memory_mib = process["memory_kb"] / 1024
+
+        print(
+            f"{process['pid']:<8}"
+            f"{process['name']:<25}"
+            f"{process['state']:<20}"
+            f"{memory_mib:>10.2f} MiB"
+        )
 if __name__ == "__main__":
     main()
