@@ -3,6 +3,7 @@ from cpu import get_cpu_usage
 from memory import get_memory_stats, kb_to_gib, read_meminfo
 from disk import get_disk_usage, bytes_to_gib
 from processes import get_processes
+from network import read_network_stats, get_network_rates, bytes_to_mib
 
 def main():
     info = get_system_info()
@@ -108,5 +109,25 @@ def main():
             f"{process['state']:<20}"
             f"{memory_mib:>10.2f} MiB"
         )
+
+    print()
+    print("=== NETWORK ===")
+    network_rates = get_network_rates()
+    for interface, stats in network_rates.items():
+
+        rx = bytes_to_mib(
+            stats["received_per_second"]
+        )
+
+        tx = bytes_to_mib(
+            stats["transmitted_per_second"]
+        )
+
+        print(
+            f"{interface:<10}"
+            f"RX: {rx:>8.2f} MiB/s   "
+            f"TX: {tx:>8.2f} MiB/s"
+        )
+
 if __name__ == "__main__":
     main()

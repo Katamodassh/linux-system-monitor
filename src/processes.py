@@ -59,3 +59,26 @@ def get_processes():
             processes.append(process)
 
     return processes 
+
+def read_process_stat(pid):
+    path = f"/proc/{pid}/stat"
+
+    with open(path, "r") as file:
+        line = file.readline()
+
+    closing_parenthesis = line.rfind(")")
+
+    if closing_parenthesis == -1:
+        raise ValueError(f"Invalid stat format for PID {pid}")
+
+    after_name = line[closing_parenthesis + 2:].split()
+
+    return after_name
+
+def get_process_cpu_time(pid):
+    fields = read_process_stat(pid)
+
+    utime = int(fields[11])
+    stime = int(fields[12])
+
+    return utime + stime    
