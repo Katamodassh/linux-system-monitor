@@ -81,4 +81,56 @@ def get_process_cpu_time(pid):
     utime = int(fields[11])
     stime = int(fields[12])
 
-    return utime + stime    
+    return utime + stime  
+
+def get_process_cpu_snapshot():
+    snapshot = {}
+
+    for pid in get_pids():
+
+        try:
+            snapshot[pid] = get_process_cpu_time(pid)
+
+        except (
+            FileNotFoundError,
+            PermissionError,
+            ProcessLookupError,
+            ValueError,
+        ):
+            continue
+
+    return snapshot  
+
+def calculate_process_cpu_usage(
+    first,
+    second,
+    system_delta,
+    cpu_count,
+):
+    if system_delta <= 0:
+        return {}
+
+    usage = {}
+
+    for pid, second_time in second.items():
+
+        first_time = first.get(pid)
+
+        if first_time is None:
+            continue
+
+        process_delta = second_time - first_time
+
+        if process_delta < 0:
+            continue
+
+        percentage = (
+            process_delta
+            / system_delta
+            * 100
+            * cpu_count
+        )
+
+        usage[pid] = percentage
+
+    return usage

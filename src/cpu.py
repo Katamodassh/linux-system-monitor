@@ -29,6 +29,9 @@ def get_cpu_usage(interval=1.0):
 
     second = read_cpu_times()
 
+    return calculate_cpu_usage(first, second)
+
+def calculate_cpu_usage(first, second):
     first_total = get_total_cpu_time(first)
     second_total = get_total_cpu_time(second)
 
@@ -37,6 +40,9 @@ def get_cpu_usage(interval=1.0):
 
     total_delta = second_total - first_total
     idle_delta = second_idle - first_idle
+
+    if total_delta <= 0:
+        return 0.0
 
     active_delta = total_delta - idle_delta
 

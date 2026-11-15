@@ -31,6 +31,7 @@ from network import (
     bytes_to_mib,
 )
 
+from dashboard import run_dashboard
 
 # ============================================================
 # CLI ARGUMENTS
@@ -99,6 +100,12 @@ def parse_arguments():
         type=positive_float,
         default=1.0,
         help="Measurement interval in seconds",
+    )
+
+    parser.add_argument(
+        "--watch",
+        action="store_true",
+        help="Run continuous monitoring dashboard",
     )
 
     return parser.parse_args()
@@ -452,6 +459,10 @@ def display_network(interval):
 
 def main():
     args = parse_arguments()
+
+    if args.watch:
+        run_dashboard(args.interval)
+        return
 
     # If no monitoring option is selected,
     # behave like --all.

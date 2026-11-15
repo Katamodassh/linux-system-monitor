@@ -30,7 +30,20 @@ def get_network_rates(interval=1.0):
 
     second = read_network_stats()
 
+    return calculate_network_rates(
+        first,
+        second,
+        interval,
+    )
+
+def bytes_to_mib(value):
+    return value / (1024 ** 2)
+
+def calculate_network_rates(first, second, interval):
     rates = {}
+
+    if interval <= 0:
+        return rates
 
     for interface, second_stats in second.items():
 
@@ -48,11 +61,11 @@ def get_network_rates(interval=1.0):
         )
 
         rates[interface] = {
-            "received_per_second": received_delta / interval,
-            "transmitted_per_second": transmitted_delta / interval,
+            "received_per_second":
+                received_delta / interval,
+
+            "transmitted_per_second":
+                transmitted_delta / interval,
         }
 
     return rates
-
-def bytes_to_mib(value):
-    return value / (1024 ** 2)
