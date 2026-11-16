@@ -1,5 +1,7 @@
 import os
 import time
+from logger import log_metrics
+from alerts import check_alerts
 
 from cpu import (
     read_cpu_times,
@@ -34,6 +36,7 @@ def clear_screen():
     print(
         "\033[2J\033[H",
         end="",
+        flush=True,
     )
 
 def display_dashboard(metrics):
@@ -131,6 +134,22 @@ def display_dashboard(metrics):
 
     print()
 
+
+    # ==========================================
+    # DISPLAY OF ALERTS
+    # ==========================================
+
+    alerts = check_alerts(metrics)
+
+    if alerts:
+        print()
+        print("ALERTS")
+
+        for alert in alerts:
+            print(
+                f"⚠ {alert}"
+            )
+
     # ==========================================
     # TOP PROCESSES
     # ==========================================
@@ -165,17 +184,19 @@ def display_dashboard(metrics):
             f"{memory_mib:>9.2f} MiB"
         )
 
-def run_dashboard(interval=1.0):
+def run_dashboard(
+    interval=1.0,
+    log=False,
+):
     try:
         while True:
-
-            # 1. Collect all metrics
             metrics = collect_metrics(interval)
 
-            # 2. Delete previous dashboard
+            if log:
+                log_metrics(metrics)
+
             clear_screen()
 
-            # 3. Display the new dashboard
             display_dashboard(metrics)
 
     except KeyboardInterrupt:

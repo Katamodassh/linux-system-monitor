@@ -108,6 +108,12 @@ def parse_arguments():
         help="Run continuous monitoring dashboard",
     )
 
+    parser.add_argument(
+        "--log",
+        action="store_true",
+        help="Save monitoring metrics to CSV",
+    )
+
     return parser.parse_args()
 
 
@@ -461,7 +467,10 @@ def main():
     args = parse_arguments()
 
     if args.watch:
-        run_dashboard(args.interval)
+        run_dashboard(
+            args.interval,
+            args.log,
+        )
         return
 
     # If no monitoring option is selected,
