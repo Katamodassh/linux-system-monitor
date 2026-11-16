@@ -1,133 +1,61 @@
 # Linux System Monitor
 
-A lightweight Linux system monitoring tool written in Python.
+A Linux system monitoring tool written in Python.
 
-The project collects system metrics directly from Linux interfaces such as `/proc` and displays them through a command-line interface and a live terminal dashboard.
+I built this project mainly to understand how Linux exposes information about CPU usage, memory, processes, disks and network activity. Instead of using a high-level library such as `psutil`, most of the metrics are collected directly from Linux interfaces such as `/proc`.
 
-It was developed to better understand how Linux exposes CPU, memory, process, filesystem, and network information without relying on high-level monitoring libraries such as `psutil`.
-
----
+The project started as a simple CLI and was progressively extended with process monitoring, a live dashboard, CSV logging, alerts and automated tests.
 
 ## Features
 
-The monitor currently supports:
-
-- General system information
+- System information
 - Global CPU usage
-- Memory and swap monitoring
+- Memory and swap usage
 - Filesystem usage
-- Process discovery
-- CPU usage per process
-- Memory usage per process
-- Network receive/transmit rates
+- Process monitoring
+- CPU and memory usage per process
+- Network RX/TX rates
 - Command-line interface
 - Live monitoring dashboard
-- Synchronized metric collection
-- CSV metric logging
-- CPU, memory, and disk alerts
+- CSV logging
+- Resource usage alerts
 - Automated tests with `pytest`
 
----
+## How it works
 
-## Architecture
-
-The application is organized into several specialized Python modules.
-
-```text
-User
- │
- ▼
-main.py
- │
- ├── system_info.py
- ├── cpu.py
- ├── memory.py
- ├── disk.py
- ├── processes.py
- ├── network.py
- │
- └── dashboard.py
-       │
-       ├── logger.py
-       └── alerts.py
-```
-
-The monitoring modules retrieve information from Linux system interfaces.
-
-```text
-Linux Kernel
-    │
-    ├── /proc/stat
-    │      └── CPU counters
-    │
-    ├── /proc/meminfo
-    │      └── Memory and swap
-    │
-    ├── /proc/<PID>/status
-    │      └── Process information
-    │
-    ├── /proc/<PID>/stat
-    │      └── Process CPU counters
-    │
-    ├── /proc/net/dev
-    │      └── Network counters
-    │
-    └── statvfs()
-           └── Filesystem information
-```
-
-The kernel maintains the system state and cumulative counters. The Python modules read and parse these interfaces, calculate useful metrics, and send the results to the CLI or dashboard.
-
----
-
-## Metric Collection
-
-Some metrics can be read directly.
+Linux exposes a lot of system information through the `/proc` pseudo-filesystem.
 
 For example:
 
 ```text
-Memory
-Disk
-System information
+/proc/stat          -> CPU counters
+/proc/meminfo       -> memory information
+/proc/<PID>/status  -> process information
+/proc/<PID>/stat    -> process CPU counters
+/proc/net/dev       -> network counters
 ```
 
-Other metrics are based on cumulative counters and require two snapshots.
+Some values, such as memory usage, can be read directly.
+
+CPU and network usage are different because Linux mainly exposes cumulative counters. To calculate a rate, the monitor takes two snapshots separated by a sampling interval.
 
 ```text
-snapshot t1
-    │
-    ▼
-wait for sampling interval
-    │
-    ▼
-snapshot t2
-    │
-    ▼
-calculate delta
+snapshot 1
+    |
+    | wait
+    |
+snapshot 2
+    |
+    v
+calculate the difference
 ```
 
-This approach is used for:
+For the live dashboard, CPU, network and process snapshots are collected during the same sampling interval so that the measurements stay consistent.
 
-- Global CPU usage
-- CPU usage per process
-- Network throughput
-
-For example, network throughput is calculated using:
-
-```text
-rate = (counter_t2 - counter_t1) / elapsed_time
-```
-
-The live dashboard uses synchronized snapshots so CPU, network, and process measurements are collected over approximately the same time interval.
-
----
-
-## Project Structure
+## Project structure
 
 ```text
 linux-system-monitor/
-│
 ├── src/
 │   ├── main.py
 │   ├── system_info.py
@@ -151,136 +79,34 @@ linux-system-monitor/
 └── README.md
 ```
 
----
-
-## Requirements
-
-The project is designed for Linux environments.
-
-It has also been developed and tested under Ubuntu running through WSL2.
-
-Recommended:
-
-```text
-Python 3.10+
-Linux / WSL2
-pytest
-```
-
----
-
-## Installation
-
-Clone the repository:
-
-```bash
-git clone <repository-url>
-cd linux-system-monitor
-```
-
-Check Python:
-
-```bash
-python3 --version
-```
-
-Install `pytest` if necessary:
-
-```bash
-sudo apt install python3-pytest
-```
-
----
-
 ## Usage
 
-### Display all metrics
+Display all metrics:
 
 ```bash
 python3 src/main.py
 ```
 
-or:
-
-```bash
-python3 src/main.py --all
-```
-
-### System information
-
-```bash
-python3 src/main.py --system
-```
-
-### CPU
+Individual metrics can also be displayed:
 
 ```bash
 python3 src/main.py --cpu
-```
-
-### Memory
-
-```bash
 python3 src/main.py --memory
-```
-
-### Disk
-
-```bash
 python3 src/main.py --disk
-```
-
-### Processes
-
-```bash
 python3 src/main.py --processes
-```
-
-### Network
-
-```bash
 python3 src/main.py --network
 ```
 
----
-
-## Sampling Interval
-
-The sampling interval can be changed using:
+The sampling interval can be changed with:
 
 ```bash
 python3 src/main.py --cpu --interval 2
 ```
 
-For example:
-
-```text
---interval 2
-```
-
-means that two seconds are used between metric snapshots.
-
-The interval must be greater than zero.
-
----
-
-## Live Dashboard
-
-Launch continuous monitoring with:
+## Live dashboard
 
 ```bash
 python3 src/main.py --watch
-```
-
-The dashboard displays:
-
-```text
-CPU
-Memory
-Disk
-Network
-Alerts
-Top processes
 ```
 
 Example:
@@ -291,225 +117,101 @@ Example:
 ============================================================
 
 CPU
-██░░░░░░░░░░░░░░░░░░  8.42 %
+█░░░░░░░░░░░░░░░░░░░   6.30 %
 
 MEMORY
-███░░░░░░░░░░░░░░░░░ 15.61 %
+███░░░░░░░░░░░░░░░░░  15.64 %
 1.16 GiB / 7.43 GiB
 
 DISK
-█░░░░░░░░░░░░░░░░░░░  5.82 %
+█░░░░░░░░░░░░░░░░░░░   5.82 %
 
 NETWORK
-eth0       ↓ 0.02 MiB/s ↑ 0.01 MiB/s
+lo         ↓ 0.00 MiB/s ↑ 0.00 MiB/s
+eth0       ↓ 0.00 MiB/s ↑ 0.00 MiB/s
 
 TOP PROCESSES
-PID     NAME                  CPU %        RAM
-------------------------------------------------
-5343    yes                  100.21%      1.50 MiB
+PID     NAME                    CPU %        RAM
+-------------------------------------------------
+5343    yes                    100.81%      1.50 MiB
 ```
 
-Stop the dashboard with:
+The dashboard can be stopped with `Ctrl+C`.
 
-```text
-Ctrl+C
-```
+## Logging
 
----
-
-## CSV Logging
-
-Metrics can be saved while the dashboard is running:
+Metrics can also be saved to a CSV file:
 
 ```bash
 python3 src/main.py --watch --log
 ```
 
-This creates:
-
-```text
-metrics.csv
-```
-
-with data similar to:
-
-```csv
-timestamp,cpu_percent,memory_percent,disk_percent,network_rx_bytes_per_second,network_tx_bytes_per_second
-2026-11-16T15:00:01,7.42,15.63,5.82,1024.0,520.0
-2026-11-16T15:00:02,6.91,15.64,5.82,2420.0,830.0
-```
-
-This allows system activity to be analyzed later with tools such as Python or Pandas.
-
----
+This creates `metrics.csv`, which can later be analyzed with Python, Pandas or another data analysis tool.
 
 ## Alerts
 
-The dashboard can detect high resource utilization.
+The monitor can display alerts when resource usage exceeds predefined thresholds.
 
-Default thresholds include:
-
-```text
-CPU    : 90 %
-Memory : 85 %
-Disk   : 90 %
-```
-
-Possible output:
+Current default thresholds are:
 
 ```text
-ALERTS
-⚠ HIGH CPU: 94.22%
-⚠ HIGH MEMORY: 88.13%
+CPU     90 %
+Memory  85 %
+Disk    90 %
 ```
-
-The CPU alert currently monitors global system CPU usage rather than the CPU usage of an individual process.
-
----
-
-## Process CPU Monitoring
-
-Linux exposes cumulative CPU counters for each process through:
-
-```text
-/proc/<PID>/stat
-```
-
-The monitor takes two snapshots and calculates the CPU consumed between them.
-
-The displayed percentage follows a convention similar to tools such as `top`, where approximately:
-
-```text
-one fully utilized logical CPU ≈ 100 %
-```
-
-Therefore a multithreaded process may legitimately exceed 100%.
-
----
 
 ## Testing
 
-Run the complete automated test suite with:
+Run the test suite with:
 
 ```bash
 python3 -m pytest -v
 ```
 
-The tests cover important components including:
+The tests currently cover CPU calculations, network rates, dashboard utilities and alerts.
 
-- CPU percentage calculations
-- Network rate calculations
-- Dashboard progress bars
-- Alert generation
-- Edge cases
-
-The tests use deterministic artificial snapshots rather than depending on the current activity of the computer.
-
-This makes them faster and reproducible.
-
----
-
-## Example CPU Validation
-
-A CPU-intensive process can be generated with:
+For CPU monitoring I also used the Linux command:
 
 ```bash
 yes > /dev/null &
 ```
 
-The process should appear near the top of the process list with approximately:
+to create a CPU-intensive process and check that it appeared at around 100% CPU in the process monitor.
 
-```text
-100 % CPU
-```
-
-Stop it with:
+It can be stopped with:
 
 ```bash
 pkill yes
 ```
 
-This can be used to validate CPU monitoring behavior.
+## What I learned
 
----
+This project helped me understand several concepts that were previously quite abstract to me, especially:
 
-## Design Decisions
+- how `/proc` works
+- cumulative CPU counters
+- how CPU percentages are actually calculated
+- processes, PIDs and threads
+- memory information exposed by Linux
+- filesystem statistics
+- network counters and transfer rates
+- exception handling when processes disappear while being inspected
+- CLI development with `argparse`
+- Git branches and feature development
+- automated testing with `pytest`
 
-### Direct use of `/proc`
+One of the most useful parts of the project was understanding that monitoring values such as CPU usage or network throughput are often not directly available as percentages or rates. They have to be calculated from measurements taken at different points in time.
 
-The project intentionally reads Linux interfaces directly instead of hiding the implementation behind a high-level monitoring library.
+## Environment
 
-This makes it possible to understand:
+The project was developed with:
 
-- Linux pseudo-filesystems
-- Kernel counters
-- CPU accounting
-- Process management
-- Memory information
-- Network statistics
-- Filesystem statistics
+- Python 3
+- Ubuntu on WSL2
+- Git / GitHub
 
-### Modular architecture
+## Status
 
-Different monitoring responsibilities are separated into modules.
+Version `v1.0.0` is the first complete version of the project.
 
-This makes the project easier to:
-
-- understand
-- test
-- maintain
-- extend
-
-### Synchronized snapshots
-
-CPU, process CPU, and network statistics are collected around a common sampling interval to avoid unnecessary sequential delays.
-
----
-
-## Current Limitations
-
-The current version is intentionally lightweight.
-
-Some possible future improvements include:
-
-- Improved terminal screen refresh behavior
-- Configurable alert thresholds from the CLI
-- Per-process CPU alerts
-- JSON logging
-- Historical charts
-- Process filtering
-- Signal handling improvements
-- Packaging as an installable Python application
-- Integration with Prometheus or Grafana
-
----
-
-## What I Learned
-
-This project was developed as a systems programming exercise and helped reinforce concepts including:
-
-- Linux filesystem hierarchy
-- `/proc` pseudo-filesystem
-- CPU accounting
-- Processes and PIDs
-- Parent processes
-- Threads
-- Memory and swap
-- Filesystems and mount points
-- Network interfaces
-- Cumulative counters
-- Sampling and rates
-- Python modules
-- Exception handling
-- CLI design with `argparse`
-- Logging
-- Automated testing
-- Git workflow
-
----
-
-## Project Status
-
-Version 1 is functionally complete.
-
-The project currently provides Linux system monitoring through both a CLI and a live terminal dashboard, with metric logging, alerts, and automated tests.
+There are still improvements I may add later, especially a cleaner terminal refresh system, configurable alert thresholds and possibly integration with monitoring tools such as Prometheus or Grafana.
